@@ -12,6 +12,7 @@ const [ticker,setTicker] = useState("TSLA");
 const [options,setOptions] = useState(null);
 const [unusualOnly,setUnusualOnly] = useState(false);
 const [candles,setCandles] = useState([]);
+const [menuOpen, setMenuOpen] = useState(false);
 const [ai,setAI] = useState(null);
 
 const spot = candles.length ? candles[candles.length-1].Close : null;
@@ -34,17 +35,36 @@ axios.get(`${API}/ai/${ticker}`)
 
 return (
 
-<div className="h-screen bg-[#070c16] text-white flex flex-row">
+<div className="h-screen bg-[#070c16] text-white flex flex-col md:flex-row">
 
-{/* SIDEBAR */}
-<div className="w-[220px] border-r border-[#121a2b] p-3 overflow-y-auto">
+{/* MOBILE TOP BAR */}
+<div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[#121a2b]">
+<button onClick={()=>setMenuOpen(true)} className="text-xl">☰</button>
+<div className="font-semibold">{ticker}</div>
+</div>
 
-<div className="text-xs text-slate-400 mb-3">WATCHLIST</div>
+{/* MOBILE OVERLAY */}
+{menuOpen && (
+<div className="fixed inset-0 bg-black/60 z-40" onClick={()=>setMenuOpen(false)} />
+)}
+
+{/* WATCHLIST */}
+<div className={`fixed md:relative z-50 md:z-auto top-0 left-0 h-full w-[220px] bg-[#070c16] border-r border-[#121a2b] p-3 overflow-y-auto
+transition-transform duration-200
+${menuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
+
+<div className="flex justify-between items-center mb-3 md:hidden">
+<div className="text-xs text-slate-400">WATCHLIST</div>
+<button onClick={()=>setMenuOpen(false)}>✕</button>
+</div>
 
 {WATCHLIST.map(t=>(
 <div
 key={t}
-onClick={()=>setTicker(t)}
+onClick={()=>{
+setTicker(t);
+setMenuOpen(false);
+}}
 className={`px-3 py-2 mb-1 rounded cursor-pointer flex justify-between items-center transition
 ${ticker===t?"bg-[#0f172a] ring-1 ring-blue-500/40":"hover:bg-[#0b1220]"}`}>
 

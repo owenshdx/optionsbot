@@ -18,9 +18,17 @@ const spot = candles.length ? candles[candles.length-1].Close : null;
 
 useEffect(()=>{
 
-axios.get(`${API}/options/${ticker}`).then(r=>setOptions(r.data));
-axios.get(`${API}/candles/${ticker}`).then(r=>setCandles(r.data));
-axios.get(`${API}/ai/${ticker}`).then(r=>setAI(r.data));
+axios.get(`${API}/options/${ticker}`)
+.then(r=>setOptions(r.data))
+.catch(()=>{});
+
+axios.get(`${API}/candles/${ticker}`)
+.then(r=>setCandles(r.data))
+.catch(()=>{});
+
+axios.get(`${API}/ai/${ticker}`)
+.then(r=>setAI(r.data))
+.catch(()=>setAI(null));
 
 },[ticker]);
 

@@ -1,23 +1,30 @@
 import { useEffect, useRef } from "react";
-import { createChart } from "lightweight-charts";
+import {
+  createChart,
+  CandlestickSeries
+} from "lightweight-charts";
 
 export default function CandleChart({ data }) {
-  const ref = useRef(null);
+  const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
 
   useEffect(() => {
-    if (!ref.current) return;
+    if (!containerRef.current) return;
 
-    // destroy old chart
+    // ⛔ prevent zero-width crash
+    const width = containerRef.current.clientWidth;
+    if (!width) return;
+
+    // cleanup old chart
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
     }
 
-    const chart = createChart(ref.current, {
-      width: ref.current.clientWidth,
-      height: 300,
+    const chart = createChart(containerRef.current, {
+      width,
+      height: 280,
       layout: {
         background: { color: "#0b1220" },
         textColor: "#94a3b8",
@@ -29,7 +36,6 @@ export default function CandleChart({ data }) {
       timeScale: {
         borderColor: "#121a2b",
         timeVisible: true,
-        secondsVisible: false,
       },
       rightPriceScale: {
         borderColor: "#121a2b",
@@ -38,9 +44,8 @@ export default function CandleChart({ data }) {
 
     chartRef.current = chart;
 
-    // ✅ v5 way to add candlesticks
-    const candles = chart.addSeries({
-      type: "Candlestick",
+    // ✅ OFFICIAL v5 API (no assertions)
+    const series = chart.addSeries(CandlestickSeries, {
       upColor: "#22c55e",
       downColor: "#ef4444",
       borderUpColor: "#22c55e",
@@ -49,10 +54,11 @@ export default function CandleChart({ data }) {
       wickDownColor: "#ef4444",
     });
 
-    seriesRef.current = candles;
+    seriesRef.current = series;
 
     const resize = () => {
-      chart.applyOptions({ width: ref.current.clientWidth });
+      if (!containerRef.current) return;
+      chart.applyOptions({ width: containerRef.current.clientWidth });
     };
 
     window.addEventListener("resize", resize);
@@ -77,5 +83,10 @@ export default function CandleChart({ data }) {
     );
   }, [data]);
 
-  return <div ref={ref} className="w-full h-[300px]" />;
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-[280px]"
+    />
+  );
 }

@@ -2,10 +2,18 @@ import { useEffect, useRef } from "react";
 import { createChart } from "lightweight-charts";
 
 export default function CandleChart({ data }) {
-  const ref = useRef();
+  const ref = useRef(null);
+  const chartRef = useRef(null);
+  const seriesRef = useRef(null);
 
   useEffect(() => {
-    if (!data || !data.length) return;
+    if (!ref.current) return;
+
+    // destroy old chart
+    if (chartRef.current) {
+      chartRef.current.remove();
+      chartRef.current = null;
+    }
 
     const chart = createChart(ref.current, {
       width: ref.current.clientWidth,
@@ -18,10 +26,21 @@ export default function CandleChart({ data }) {
         vertLines: { color: "#121a2b" },
         horzLines: { color: "#121a2b" },
       },
-      timeScale: { borderColor: "#121a2b" },
+      timeScale: {
+        borderColor: "#121a2b",
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      rightPriceScale: {
+        borderColor: "#121a2b",
+      },
     });
 
-    const candles = chart.addCandlestickSeries({
+    chartRef.current = chart;
+
+    // ✅ v5 way to add candlesticks
+    const candles = chart.addSeries({
+      type: "Candlestick",
       upColor: "#22c55e",
       downColor: "#ef4444",
       borderUpColor: "#22c55e",
@@ -30,7 +49,24 @@ export default function CandleChart({ data }) {
       wickDownColor: "#ef4444",
     });
 
-    candles.setData(
+    seriesRef.current = candles;
+
+    const resize = () => {
+      chart.applyOptions({ width: ref.current.clientWidth });
+    };
+
+    window.addEventListener("resize", resize);
+
+    return () => {
+      window.removeEventListener("resize", resize);
+      chart.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!seriesRef.current || !data?.length) return;
+
+    seriesRef.current.setData(
       data.map(d => ({
         time: Math.floor(new Date(d.Datetime).getTime() / 1000),
         open: d.Open,
@@ -39,15 +75,6 @@ export default function CandleChart({ data }) {
         close: d.Close,
       }))
     );
-
-    const resize = () =>
-      chart.applyOptions({ width: ref.current.clientWidth });
-    window.addEventListener("resize", resize);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      chart.remove();
-    };
   }, [data]);
 
   return <div ref={ref} className="w-full h-[300px]" />;

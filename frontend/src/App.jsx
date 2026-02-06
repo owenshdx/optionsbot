@@ -15,9 +15,11 @@ const [ai,setAI] = useState(null);
 const spot = candles.length ? candles[candles.length-1].Close : null;
 
 useEffect(()=>{
-axios.get(`import.meta.env.VITE_API_URL/options/${ticker}`).then(r=>setOptions(r.data));
-axios.get(`import.meta.env.VITE_API_URL/candles/${ticker}`).then(r=>setCandles(r.data));
-axios.get(`import.meta.env.VITE_API_URL/ai/${ticker}`).then(r=>setAI(r.data));
+
+axios.get(`${API}/options/${ticker}`).then(r=>setOptions(r.data));
+axios.get(`${API}/candles/${ticker}`).then(r=>setCandles(r.data));
+axios.get(`${API}/ai/${ticker}`).then(r=>setAI(r.data));
+
 },[ticker]);
 
 return (

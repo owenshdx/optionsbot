@@ -5,4 +5,3 @@ pandas
 numpy
 requests
 openai
-lightweight-charts@latest

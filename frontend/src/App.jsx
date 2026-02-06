@@ -164,14 +164,12 @@ AI FAVORS {ai.bias}<br/>
         {itm ? "IN THE MONEY" : atm ? "AT THE MONEY" : "OUT OF THE MONEY"}
       </div>
 
+       </div>
     </div>
-  );
-})}
 
-        </div>   {/* end PUTS */}
-      </div>     {/* end grid */}
-    </div>       {/* end OPTIONS FLOW */}
-  </div>         {/* end MAIN CONTENT */}
-</div>           {/* end APP ROOT */}
+    </div>
+  </div>
+</div>
 );
 }
+

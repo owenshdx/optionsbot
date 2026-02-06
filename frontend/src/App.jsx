@@ -16,15 +16,7 @@ export default function App() {
 
   const spot = candles.length ? candles[candles.length - 1].Close : null;
 
-  // swipe between tickers
-  const handleTouchStart = e => setTouchStart(e.touches[0].clientX);
-  const handleTouchEnd = e => {
-    if (!touchStart) return;
-    const diff = touchStart - e.changedTouches[0].clientX;
-    const idx = WATCHLIST.indexOf(ticker);
-    if (diff > 60 && idx < WATCHLIST.length - 1) setTicker(WATCHLIST[idx + 1]);
-    if (diff < -60 && idx > 0) setTicker(WATCHLIST[idx - 1]);
-  };
+  /* ---------------- FETCH DATA ---------------- */
 
   useEffect(() => {
     axios.get(`${API}/options/${ticker}`).then(r => setOptions(r.data)).catch(()=>{});
@@ -32,21 +24,34 @@ export default function App() {
     axios.get(`${API}/ai/${ticker}`).then(r => setAI(r.data)).catch(()=>setAI(null));
   }, [ticker]);
 
+  /* ---------------- SWIPE NAV ---------------- */
+
+  const handleTouchStart = e => setTouchStart(e.touches[0].clientX);
+  const handleTouchEnd = e => {
+    if (!touchStart) return;
+    const diff = touchStart - e.changedTouches[0].clientX;
+    const idx = WATCHLIST.indexOf(ticker);
+    if (diff > 60 && idx < WATCHLIST.length - 1) setTicker(WATCHLIST[idx + 1]);
+    if (diff < -60 && idx > 0) setTicker(WATCHLIST[idx - 1]);
+    setTouchStart(null);
+  };
+
   return (
     <div
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className="h-screen bg-[#070c16] text-white flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+      className="h-screen bg-[#070c16] text-white flex flex-col
+      pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
     >
 
-      {/* TOP BAR */}
+      {/* ---------- TOP BAR ---------- */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#121a2b]">
         <button onClick={() => setMenuOpen(true)} className="text-lg">☰</button>
         <div className="font-medium">{ticker}</div>
         <div className="w-6" />
       </div>
 
-      {/* OVERLAY */}
+      {/* ---------- OVERLAY ---------- */}
       {menuOpen && (
         <div
           className="fixed inset-0 bg-black/60 z-40"
@@ -54,11 +59,11 @@ export default function App() {
         />
       )}
 
-      {/* WATCHLIST DRAWER */}
-      <div
-        className={`fixed top-0 left-0 h-full w-[220px] bg-[#070c16] z-50 border-r border-[#121a2b] p-3
-        transition-transform ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
+      {/* ---------- WATCHLIST DRAWER ---------- */}
+      <div className={`fixed top-0 left-0 h-full w-[220px] bg-[#070c16] z-50
+        border-r border-[#121a2b] p-3 transition-transform
+        ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+
         <div className="flex justify-between mb-3">
           <span className="text-xs text-slate-400">WATCHLIST</span>
           <button onClick={() => setMenuOpen(false)}>✕</button>
@@ -69,7 +74,9 @@ export default function App() {
             key={t}
             onClick={() => { setTicker(t); setMenuOpen(false); }}
             className={`px-3 py-2 mb-1 rounded cursor-pointer flex justify-between
-            ${ticker === t ? "bg-[#0f172a] ring-1 ring-blue-500/40" : "hover:bg-[#0b1220]"}`}
+            ${ticker === t
+              ? "bg-[#0f172a] ring-1 ring-blue-500/40"
+              : "hover:bg-[#0b1220]"}`}
           >
             <span>{t}</span>
             <span className="text-[10px] text-green-400">
@@ -79,44 +86,47 @@ export default function App() {
         ))}
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* ---------- MAIN ---------- */}
       <div className="flex-1 p-3 overflow-y-auto space-y-3">
 
-        {/* CHART */}
+        {/* ---------- CHART ---------- */}
         <div className="bg-[#0b1220] border border-[#121a2b] rounded-xl p-3 relative">
           <CandleChart data={candles} />
 
-          {ai && ai.bias !== "NEUTRAL" && (
-            <div
-              className={`absolute top-3 right-3 px-3 py-2 rounded-xl text-xs font-bold
-              ${ai.bias === "CALLS"
-                ? "bg-green-500/20 text-green-400 ring-1 ring-green-500"
-                : "bg-red-500/20 text-red-400 ring-1 ring-red-500"}`}
-            >
+          {ai && ai.bias && ai.bias !== "NEUTRAL" && (
+            <div className={`absolute top-3 right-3 px-3 py-2 rounded-xl text-xs font-bold
+            ${ai.bias === "CALLS"
+              ? "bg-green-500/20 text-green-400 ring-1 ring-green-500"
+              : "bg-red-500/20 text-red-400 ring-1 ring-red-500"}`}>
               AI FAVORS {ai.bias}
-              <div className="text-[10px] opacity-70">{ai.confidence || 0}%</div>
+              <div className="text-[10px] opacity-70">
+                {ai.confidence || 0}% CONF
+              </div>
             </div>
           )}
         </div>
 
-        {/* OPTIONS FLOW */}
+        {/* ---------- OPTIONS FLOW ---------- */}
         <div className="bg-[#0b1220] border border-[#121a2b] rounded-xl p-3">
           <div className="grid grid-cols-2 gap-3">
 
-            {/* CALLS */}
+            {/* ---------- CALLS ---------- */}
             <div>
               <div className="text-green-400 text-xs mb-2">CALL BUYING</div>
+
               {options?.calls?.slice(0, 12).map((c, i) => {
-                const itm = spot && c.strike < spot;
-                const atm = spot && Math.abs(c.strike - spot) < 1;
-                const aggressive = c.volume > c.openInterest;
+                if (!spot) return null;
+
+                const atm = Math.abs(c.strike - spot) <= 0.5;
+                const itm = c.strike < spot;
+                const label = atm ? "AT THE MONEY" : itm ? "IN THE MONEY" : "OUT OF THE MONEY";
 
                 return (
                   <div
                     key={i}
                     className={`mb-2 rounded-lg p-2 text-xs border
                     ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
-                    ${aggressive ? "bg-green-500/10" : ""}`}
+                    ${itm ? "bg-green-500/10" : ""}`}
                   >
                     <div className="flex justify-between">
                       <span className="font-semibold">${c.strike} CALL</span>
@@ -126,31 +136,31 @@ export default function App() {
                     <div className="flex justify-between text-[10px] text-slate-400 mt-1">
                       <span>VOL {c.volume}</span>
                       <span>OI {c.openInterest}</span>
-                      <span>{aggressive ? "AGGRESSIVE" : "PASSIVE"}</span>
                     </div>
 
-                    <div className="text-[10px] mt-1 text-slate-500">
-                      {itm ? "IN THE MONEY" : atm ? "AT THE MONEY" : "OUT OF THE MONEY"}
-                    </div>
+                    <div className="text-[10px] mt-1 text-slate-500">{label}</div>
                   </div>
                 );
               })}
             </div>
 
-            {/* PUTS */}
+            {/* ---------- PUTS ---------- */}
             <div>
               <div className="text-red-400 text-xs mb-2">PUT BUYING</div>
+
               {options?.puts?.slice(0, 12).map((p, i) => {
-                const itm = spot && p.strike > spot;
-                const atm = spot && Math.abs(p.strike - spot) < 1;
-                const aggressive = p.volume > p.openInterest;
+                if (!spot) return null;
+
+                const atm = Math.abs(p.strike - spot) <= 0.5;
+                const itm = p.strike > spot;
+                const label = atm ? "AT THE MONEY" : itm ? "IN THE MONEY" : "OUT OF THE MONEY";
 
                 return (
                   <div
                     key={i}
                     className={`mb-2 rounded-lg p-2 text-xs border
                     ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
-                    ${aggressive ? "bg-red-500/10" : ""}`}
+                    ${itm ? "bg-red-500/10" : ""}`}
                   >
                     <div className="flex justify-between">
                       <span className="font-semibold">${p.strike} PUT</span>
@@ -160,12 +170,9 @@ export default function App() {
                     <div className="flex justify-between text-[10px] text-slate-400 mt-1">
                       <span>VOL {p.volume}</span>
                       <span>OI {p.openInterest}</span>
-                      <span>{aggressive ? "AGGRESSIVE" : "PASSIVE"}</span>
                     </div>
 
-                    <div className="text-[10px] mt-1 text-slate-500">
-                      {itm ? "IN THE MONEY" : atm ? "AT THE MONEY" : "OUT OF THE MONEY"}
-                    </div>
+                    <div className="text-[10px] mt-1 text-slate-500">{label}</div>
                   </div>
                 );
               })}

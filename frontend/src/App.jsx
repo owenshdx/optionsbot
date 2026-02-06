@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import CandleChart from "./CandleChart";
 
+const API = import.meta.env.VITE_API_URL;
+
 const WATCHLIST = ["AAPL","TSLA","SPY","NFLX","AMZN","MO","IWM"];
 
 export default function App() {

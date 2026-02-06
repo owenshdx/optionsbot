@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import threading
 import time
@@ -196,45 +197,51 @@ def flow(ticker:str):
 
 
 @app.get("/ai/{ticker}")
-def ai_signal(ticker:str):
+def ai_signal(ticker: str):
 
-    unusual=flow(ticker)
-    headlines=fetch_news(ticker)
+    try:
+        unusual = flow(ticker)
+        headlines = fetch_news(ticker)
 
-    df=yf.download(ticker,period="1d",interval="5m")
-    closes=df["Close"].values if not df.empty else []
+        df = yf.download(ticker, period="1d", interval="5m")
+        closes = df["Close"].values if not df.empty else []
 
-    price=float(closes[-1]) if len(closes) else 0
-    rsi=calculate_rsi(closes)
+        price = float(closes[-1]) if len(closes) else 0
+        rsi = calculate_rsi(closes) if len(closes) > 15 else 50
 
-    ai=analyze_market(ticker,unusual,headlines,price,rsi)
+        ai = analyze_market(ticker, unusual, headlines, price, rsi)
 
-    bias=ai.get("bias","NEUTRAL")
+        bias = ai.get("bias", "NEUTRAL")
 
-    entry=round(price,2)
-    stop=round(price*.99,2)
-    target=round(price*1.02,2)
+        entry = round(price,2)
+        stop = round(price * 0.99,2)
+        target = round(price * 1.02,2)
 
-    if bias=="PUTS":
-        stop=round(price*1.01,2)
-        target=round(price*.98,2)
+        if bias == "PUTS":
+            stop = round(price * 1.01,2)
+            target = round(price * 0.98,2)
 
-    signal={
-        "ticker":ticker,
-        "bias":bias,
-        "confidence":ai.get("confidence",0),
-        "price":entry,
-        "stop":stop,
-        "target":target,
-        "time":time.time()
-    }
+        signal = {
+            "bias": bias,
+            "confidence": ai.get("confidence",0),
+            "price": entry,
+            "stop": stop,
+            "target": target
+        }
 
-    SIGNAL_HISTORY.append(signal)
+        return signal
 
-    if bias!="NEUTRAL":
-        send_discord(str(signal))
+    except Exception as e:
+        print("AI ERROR:", e)
 
-    return signal
+        # IMPORTANT: still return JSON so CORS works
+        return JSONResponse({
+            "bias": "NEUTRAL",
+            "confidence": 0,
+            "price": 0,
+            "stop": 0,
+            "target": 0
+        })
 
 
 @app.get("/signals")

@@ -168,9 +168,10 @@ AI FAVORS {ai.bias}<br/>
   );
 })}
 
-</div>
-
-</div>
-</div>
+        </div>   {/* end PUTS */}
+      </div>     {/* end grid */}
+    </div>       {/* end OPTIONS FLOW */}
+  </div>         {/* end MAIN CONTENT */}
+</div>           {/* end APP ROOT */}
 );
 }

@@ -96,6 +96,44 @@ export default function App() {
         </div>
 
         {/* OPTIONS FLOW */}
+{/* NET PREMIUM BAR */}
+{options && (() => {
+  const callPrem = options.calls.reduce(
+    (a,c)=>a + (c.lastPrice * c.volume * 100), 0
+  );
+  const putPrem = options.puts.reduce(
+    (a,p)=>a + (p.lastPrice * p.volume * 100), 0
+  );
+  const total = callPrem + putPrem || 1;
+
+  const callPct = Math.round((callPrem / total) * 100);
+  const putPct = 100 - callPct;
+
+  return (
+    <div className="mb-4">
+      <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+        <span>CALL ${ (callPrem/1e6).toFixed(2) }M</span>
+        <span>PUT ${ (putPrem/1e6).toFixed(2) }M</span>
+      </div>
+
+      <div className="h-3 w-full bg-[#0f172a] rounded-full overflow-hidden flex">
+        <div
+          className="bg-green-500"
+          style={{ width: `${callPct}%` }}
+        />
+        <div
+          className="bg-red-500"
+          style={{ width: `${putPct}%` }}
+        />
+      </div>
+
+      <div className="text-center text-[10px] mt-1 text-slate-500">
+        {callPct > putPct ? "CALLS DOMINATING" : "PUTS DOMINATING"}
+      </div>
+    </div>
+  );
+})()}
+
         <div className="bg-[#0b1220] border border-[#121a2b] rounded-xl p-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
@@ -107,6 +145,7 @@ export default function App() {
 
               {options?.calls?.slice(0, 12).map((c, i) => {
                 const premium = c.lastPrice * c.volume * 100;
+		const isWall = premium > 500000;
                 const heat = premiumHeat(premium);
                 const atm = spot && Math.abs(c.strike - spot) < 0.75;
                 const aggressive = c.volume > c.openInterest;
@@ -136,6 +175,12 @@ export default function App() {
                         {aggressive ? "AGGRESSIVE FLOW" : "NORMAL FLOW"}
                       </span>
                     </div>
+			{isWall && (
+  <div className="text-[10px] mt-1 text-green-400 font-semibold">
+    🧱 CALL WALL
+  </div>
+)}
+
 
                     <div className="text-[10px] mt-1 text-slate-300">
                       ${(premium / 1000).toFixed(0)}k premium
@@ -153,6 +198,7 @@ export default function App() {
 
               {options?.puts?.slice(0, 12).map((p, i) => {
                 const premium = p.lastPrice * p.volume * 100;
+		const isWall = premium > 500000;
                 const heat = premiumHeat(premium);
                 const atm = spot && Math.abs(p.strike - spot) < 0.75;
                 const aggressive = p.volume > p.openInterest;
@@ -174,6 +220,12 @@ export default function App() {
                         ${p.lastPrice}
                       </span>
                     </div>
+			{isWall && (
+  <div className="text-[10px] mt-1 text-red-400 font-semibold">
+    🧱 PUT WALL
+  </div>
+)}
+
 
                     <div className="flex justify-between mt-1 text-[10px] text-slate-200">
                       <span>VOL {p.volume}</span>

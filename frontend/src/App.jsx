@@ -20,15 +20,22 @@ export default function App() {
     axios.get(`${API}/ai/${ticker}`).then(r => setAI(r.data)).catch(() => setAI(null));
   }, [ticker]);
 
-  // helper: get top 3 strikes by flow
+  /* ---------------- HELPERS ---------------- */
+
+  const premiumHeat = (premium, max = 1_000_000) =>
+    Math.min(0.35, premium / max);
+
   const topStrikes = (list = []) =>
     [...list]
-      .sort((a, b) => (b.volume * b.openInterest) - (a.volume * a.openInterest))
+      .map(c => ({ ...c, premium: c.lastPrice * c.volume * 100 }))
+      .sort((a, b) => b.premium - a.premium)
       .slice(0, 3)
-      .map(x => x.strike);
+      .map(c => c.strike);
 
   const topCalls = topStrikes(options?.calls);
   const topPuts = topStrikes(options?.puts);
+
+  /* ---------------- UI ---------------- */
 
   return (
     <div className="h-screen bg-[#070c16] text-white flex flex-col">
@@ -42,10 +49,7 @@ export default function App() {
 
       {/* OVERLAY */}
       {menuOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40"
-          onClick={() => setMenuOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setMenuOpen(false)} />
       )}
 
       {/* WATCHLIST */}
@@ -66,9 +70,7 @@ export default function App() {
               ${ticker === t ? "bg-[#0f172a] ring-1 ring-blue-500/40" : "hover:bg-[#0b1220]"}`}
           >
             <span>{t}</span>
-            {ticker === t && (
-              <span className="text-[10px] text-green-400">ACTIVE</span>
-            )}
+            {ticker === t && <span className="text-[10px] text-green-400">ACTIVE</span>}
           </div>
         ))}
       </div>
@@ -81,12 +83,10 @@ export default function App() {
           <CandleChart data={candles} />
 
           {ai && ai.bias && ai.bias !== "NEUTRAL" && (
-            <div
-              className={`absolute top-3 right-3 px-3 py-2 rounded-xl text-xs font-bold
+            <div className={`absolute top-3 right-3 px-3 py-2 rounded-xl text-xs font-bold
               ${ai.bias === "CALLS"
                 ? "bg-green-500/20 text-green-400 ring-1 ring-green-500"
-                : "bg-red-500/20 text-red-400 ring-1 ring-red-500"}`}
-            >
+                : "bg-red-500/20 text-red-400 ring-1 ring-red-500"}`}>
               AI FAVORS {ai.bias}
               <div className="text-[10px] opacity-70">
                 {ai.confidence || 0}% CONF
@@ -106,6 +106,8 @@ export default function App() {
               </div>
 
               {options?.calls?.slice(0, 12).map((c, i) => {
+                const premium = c.lastPrice * c.volume * 100;
+                const heat = premiumHeat(premium);
                 const atm = spot && Math.abs(c.strike - spot) < 0.75;
                 const aggressive = c.volume > c.openInterest;
                 const isTop = topCalls.includes(c.strike);
@@ -113,9 +115,9 @@ export default function App() {
                 return (
                   <div
                     key={i}
+                    style={{ background: `rgba(34,197,94,${heat})` }}
                     className={`mb-3 p-3 rounded-xl border text-xs
-                      ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
-                      ${aggressive ? "bg-green-500/10" : ""}
+                      ${atm ? "border-yellow-400" : "border-[#121a2b]"}
                       ${isTop ? "ring-1 ring-green-400" : ""}`}
                   >
                     <div className="flex justify-between items-center">
@@ -127,12 +129,16 @@ export default function App() {
                       </span>
                     </div>
 
-                    <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-200">
                       <span>VOL {c.volume}</span>
                       <span>OI {c.openInterest}</span>
-                      <span className={aggressive ? "text-green-400" : ""}>
+                      <span className={aggressive ? "text-green-300" : ""}>
                         {aggressive ? "AGGRESSIVE FLOW" : "NORMAL FLOW"}
                       </span>
+                    </div>
+
+                    <div className="text-[10px] mt-1 text-slate-300">
+                      ${(premium / 1000).toFixed(0)}k premium
                     </div>
                   </div>
                 );
@@ -146,6 +152,8 @@ export default function App() {
               </div>
 
               {options?.puts?.slice(0, 12).map((p, i) => {
+                const premium = p.lastPrice * p.volume * 100;
+                const heat = premiumHeat(premium);
                 const atm = spot && Math.abs(p.strike - spot) < 0.75;
                 const aggressive = p.volume > p.openInterest;
                 const isTop = topPuts.includes(p.strike);
@@ -153,9 +161,9 @@ export default function App() {
                 return (
                   <div
                     key={i}
+                    style={{ background: `rgba(239,68,68,${heat})` }}
                     className={`mb-3 p-3 rounded-xl border text-xs
-                      ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
-                      ${aggressive ? "bg-red-500/10" : ""}
+                      ${atm ? "border-yellow-400" : "border-[#121a2b]"}
                       ${isTop ? "ring-1 ring-red-400" : ""}`}
                   >
                     <div className="flex justify-between items-center">
@@ -167,12 +175,16 @@ export default function App() {
                       </span>
                     </div>
 
-                    <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-200">
                       <span>VOL {p.volume}</span>
                       <span>OI {p.openInterest}</span>
-                      <span className={aggressive ? "text-red-400" : ""}>
+                      <span className={aggressive ? "text-red-300" : ""}>
                         {aggressive ? "AGGRESSIVE FLOW" : "NORMAL FLOW"}
                       </span>
+                    </div>
+
+                    <div className="text-[10px] mt-1 text-slate-300">
+                      ${(premium / 1000).toFixed(0)}k premium
                     </div>
                   </div>
                 );

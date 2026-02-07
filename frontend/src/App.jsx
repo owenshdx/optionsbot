@@ -106,82 +106,102 @@ export default function App() {
           )}
         </div>
 
-        {/* ---------- OPTIONS FLOW ---------- */}
-        <div className="bg-[#0b1220] border border-[#121a2b] rounded-xl p-3">
-          <div className="grid grid-cols-2 gap-3">
+{/* OPTIONS FLOW */}
+<div className="bg-[#0b1220] border border-[#121a2b] rounded-xl p-3">
 
-            {/* ---------- CALLS ---------- */}
-            <div>
-              <div className="text-green-400 text-xs mb-2">CALL BUYING</div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-              {options?.calls?.slice(0, 12).map((c, i) => {
-                if (!spot) return null;
+    {/* CALL FLOW */}
+    <div>
+      <div className="text-green-400 text-xs mb-2 tracking-wide">
+        CALL FLOW
+      </div>
 
-                const atm = Math.abs(c.strike - spot) <= 0.5;
-                const itm = c.strike < spot;
-                const label = atm ? "AT THE MONEY" : itm ? "IN THE MONEY" : "OUT OF THE MONEY";
+      {options?.calls?.slice(0,12).map((c,i)=>{
+        const atm = spot && Math.abs(c.strike - spot) < 0.75;
+        const itm = spot && c.strike < spot;
+        const aggressive = c.volume > c.openInterest;
 
-                return (
-                  <div
-                    key={i}
-                    className={`mb-2 rounded-lg p-2 text-xs border
-                    ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
-                    ${itm ? "bg-green-500/10" : ""}`}
-                  >
-                    <div className="flex justify-between">
-                      <span className="font-semibold">${c.strike} CALL</span>
-                      <span className="text-green-400">${c.lastPrice}</span>
-                    </div>
+        return (
+          <div
+            key={i}
+            className={`
+              mb-2 p-3 rounded-lg border text-xs
+              ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
+              ${aggressive ? "bg-green-500/10" : "bg-[#0b1220]"}
+            `}
+          >
 
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                      <span>VOL {c.volume}</span>
-                      <span>OI {c.openInterest}</span>
-                    </div>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">
+                ${c.strike} CALL
+                {atm && <span className="ml-2 text-yellow-400 text-[10px]">ATM</span>}
+                {itm && !atm && <span className="ml-2 text-green-400 text-[10px]">ITM</span>}
+              </span>
 
-                    <div className="text-[10px] mt-1 text-slate-500">{label}</div>
-                  </div>
-                );
-              })}
+              <span className="text-green-400 font-mono">
+                ${c.lastPrice}
+              </span>
             </div>
 
-            {/* ---------- PUTS ---------- */}
-            <div>
-              <div className="text-red-400 text-xs mb-2">PUT BUYING</div>
-
-              {options?.puts?.slice(0, 12).map((p, i) => {
-                if (!spot) return null;
-
-                const atm = Math.abs(p.strike - spot) <= 0.5;
-                const itm = p.strike > spot;
-                const label = atm ? "AT THE MONEY" : itm ? "IN THE MONEY" : "OUT OF THE MONEY";
-
-                return (
-                  <div
-                    key={i}
-                    className={`mb-2 rounded-lg p-2 text-xs border
-                    ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
-                    ${itm ? "bg-red-500/10" : ""}`}
-                  >
-                    <div className="flex justify-between">
-                      <span className="font-semibold">${p.strike} PUT</span>
-                      <span className="text-red-400">${p.lastPrice}</span>
-                    </div>
-
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                      <span>VOL {p.volume}</span>
-                      <span>OI {p.openInterest}</span>
-                    </div>
-
-                    <div className="text-[10px] mt-1 text-slate-500">{label}</div>
-                  </div>
-                );
-              })}
+            <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+              <span>VOL {c.volume}</span>
+              <span>OI {c.openInterest}</span>
+              <span className={aggressive ? "text-green-400" : ""}>
+                {aggressive ? "AGGRESSIVE" : "PASSIVE"}
+              </span>
             </div>
 
           </div>
-        </div>
-
-      </div>
+        );
+      })}
     </div>
-  );
-}
+
+    {/* PUT FLOW */}
+    <div>
+      <div className="text-red-400 text-xs mb-2 tracking-wide">
+        PUT FLOW
+      </div>
+
+      {options?.puts?.slice(0,12).map((p,i)=>{
+        const atm = spot && Math.abs(p.strike - spot) < 0.75;
+        const itm = spot && p.strike > spot;
+        const aggressive = p.volume > p.openInterest;
+
+        return (
+          <div
+            key={i}
+            className={`
+              mb-2 p-3 rounded-lg border text-xs
+              ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
+              ${aggressive ? "bg-red-500/10" : "bg-[#0b1220]"}
+            `}
+          >
+
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">
+                ${p.strike} PUT
+                {atm && <span className="ml-2 text-yellow-400 text-[10px]">ATM</span>}
+                {itm && !atm && <span className="ml-2 text-red-400 text-[10px]">ITM</span>}
+              </span>
+
+              <span className="text-red-400 font-mono">
+                ${p.lastPrice}
+              </span>
+            </div>
+
+            <div className="flex justify-between mt-1 text-[10px] text-slate-400">
+              <span>VOL {p.volume}</span>
+              <span>OI {p.openInterest}</span>
+              <span className={aggressive ? "text-red-400" : ""}>
+                {aggressive ? "AGGRESSIVE" : "PASSIVE"}
+              </span>
+            </div>
+
+          </div>
+        );
+      })}
+    </div>
+
+  </div>
+</div>

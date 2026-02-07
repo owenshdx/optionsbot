@@ -12,14 +12,23 @@ export default function App() {
   const [ai, setAI] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const spot =
-    candles.length > 0 ? candles[candles.length - 1].Close : null;
+  const spot = candles.length ? candles[candles.length - 1].Close : null;
 
   useEffect(() => {
     axios.get(`${API}/options/${ticker}`).then(r => setOptions(r.data)).catch(() => {});
     axios.get(`${API}/candles/${ticker}`).then(r => setCandles(r.data)).catch(() => {});
     axios.get(`${API}/ai/${ticker}`).then(r => setAI(r.data)).catch(() => setAI(null));
   }, [ticker]);
+
+  // helper: get top 3 strikes by flow
+  const topStrikes = (list = []) =>
+    [...list]
+      .sort((a, b) => (b.volume * b.openInterest) - (a.volume * a.openInterest))
+      .slice(0, 3)
+      .map(x => x.strike);
+
+  const topCalls = topStrikes(options?.calls);
+  const topPuts = topStrikes(options?.puts);
 
   return (
     <div className="h-screen bg-[#070c16] text-white flex flex-col">
@@ -39,7 +48,7 @@ export default function App() {
         />
       )}
 
-      {/* WATCHLIST DRAWER */}
+      {/* WATCHLIST */}
       <div
         className={`fixed top-0 left-0 h-full w-[220px] bg-[#070c16] z-50 border-r border-[#121a2b] p-3 transition-transform
         ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
@@ -90,56 +99,80 @@ export default function App() {
         <div className="bg-[#0b1220] border border-[#121a2b] rounded-xl p-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-            {/* CALLS */}
+            {/* CALL FLOW */}
             <div>
-              <div className="text-green-400 text-xs mb-2">CALL BUYING</div>
+              <div className="text-green-400 text-xs mb-2 tracking-wide">
+                CALL BUYING
+              </div>
+
               {options?.calls?.slice(0, 12).map((c, i) => {
                 const atm = spot && Math.abs(c.strike - spot) < 0.75;
                 const aggressive = c.volume > c.openInterest;
+                const isTop = topCalls.includes(c.strike);
 
                 return (
                   <div
                     key={i}
-                    className={`mb-2 p-3 rounded-lg border text-xs
+                    className={`mb-3 p-3 rounded-xl border text-xs
                       ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
-                      ${aggressive ? "bg-green-500/10" : ""}`}
+                      ${aggressive ? "bg-green-500/10" : ""}
+                      ${isTop ? "ring-1 ring-green-400" : ""}`}
                   >
-                    <div className="flex justify-between">
-                      <span className="font-semibold">${c.strike} CALL</span>
-                      <span className="text-green-400">${c.lastPrice}</span>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">
+                        ${c.strike} CALL {isTop && "⭐"}
+                      </span>
+                      <span className="text-green-400 font-mono">
+                        ${c.lastPrice}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-400">
                       <span>VOL {c.volume}</span>
                       <span>OI {c.openInterest}</span>
-                      <span>{aggressive ? "AGGRESSIVE" : "PASSIVE"}</span>
+                      <span className={aggressive ? "text-green-400" : ""}>
+                        {aggressive ? "AGGRESSIVE FLOW" : "NORMAL FLOW"}
+                      </span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* PUTS */}
+            {/* PUT FLOW */}
             <div>
-              <div className="text-red-400 text-xs mb-2">PUT BUYING</div>
+              <div className="text-red-400 text-xs mb-2 tracking-wide">
+                PUT BUYING
+              </div>
+
               {options?.puts?.slice(0, 12).map((p, i) => {
                 const atm = spot && Math.abs(p.strike - spot) < 0.75;
                 const aggressive = p.volume > p.openInterest;
+                const isTop = topPuts.includes(p.strike);
 
                 return (
                   <div
                     key={i}
-                    className={`mb-2 p-3 rounded-lg border text-xs
+                    className={`mb-3 p-3 rounded-xl border text-xs
                       ${atm ? "border-yellow-400 bg-yellow-400/10" : "border-[#121a2b]"}
-                      ${aggressive ? "bg-red-500/10" : ""}`}
+                      ${aggressive ? "bg-red-500/10" : ""}
+                      ${isTop ? "ring-1 ring-red-400" : ""}`}
                   >
-                    <div className="flex justify-between">
-                      <span className="font-semibold">${p.strike} PUT</span>
-                      <span className="text-red-400">${p.lastPrice}</span>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">
+                        ${p.strike} PUT {isTop && "⭐"}
+                      </span>
+                      <span className="text-red-400 font-mono">
+                        ${p.lastPrice}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-400">
                       <span>VOL {p.volume}</span>
                       <span>OI {p.openInterest}</span>
-                      <span>{aggressive ? "AGGRESSIVE" : "PASSIVE"}</span>
+                      <span className={aggressive ? "text-red-400" : ""}>
+                        {aggressive ? "AGGRESSIVE FLOW" : "NORMAL FLOW"}
+                      </span>
                     </div>
                   </div>
                 );
